@@ -224,6 +224,13 @@
             const [progress, setProgress] = useState(0);
             const [hacking, setHacking] = useState(false);
 
+            useEffect(() => {
+                document.body.style.overflow = 'hidden';
+                return () => {
+                    document.body.style.overflow = 'auto';
+                };
+            }, []);
+
             const handleOverride = () => {
                 setHacking(true);
                 let p = 0;
@@ -232,7 +239,13 @@
                     if (p >= 100) {
                         p = 100;
                         clearInterval(interval);
-                        setTimeout(onUnlock, 500);
+                        setTimeout(() => {
+                            document.body.style.overflow = 'auto';
+                            window.scrollTo(0, 0);
+                            document.documentElement.scrollTop = 0;
+                            document.body.scrollTop = 0;
+                            onUnlock();
+                        }, 500);
                     }
                     setProgress(p);
                 }, 50);
