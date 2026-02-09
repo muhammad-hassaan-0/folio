@@ -3,360 +3,557 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hassaan | Computer Vision Engineer</title>
+    <title>HASSAAN.CV // RED WOLF PROTOCOL</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;600;800&display=swap');
+        /* Import Hacker Fonts */
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&display=swap');
         
         body {
-            font-family: 'Inter', sans-serif;
-            background-color: #050505;
+            background-color: #020000;
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+            /* Use the font requested in your example for that crisp terminal look */
+            font-family: 'JetBrains Mono', monospace; 
         }
-        .font-mono {
-            font-family: 'JetBrains Mono', monospace;
+
+        /* Custom scrollbar hiding */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
         }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        
+        /* Custom selection color */
+        ::selection { background-color: #ef4444; color: black; }
+
+        /* Glitch Animation Keyframes */
+        @keyframes noise { 0%, 100% { transform: translate(0,0); } 10% { transform: translate(-5%,-5%); } 50% { transform: translate(-10%,5%); } 90% { transform: translate(10%,5%); } }
+        @keyframes glitch-anim-1 { 0% { clip: rect(20px, 9999px, 15px, 0); } 100% { clip: rect(50px, 9999px, 60px, 0); } }
+        @keyframes glitch-anim-2 { 0% { clip: rect(10px, 9999px, 80px, 0); } 100% { clip: rect(60px, 9999px, 30px, 0); } }
+        
+        .glitch-layers { position: relative; }
+        .glitch-layers::before, .glitch-layers::after { content: attr(data-text); position: absolute; width: 100%; height: 100%; background: #020000; overflow: hidden; top: 0; }
+        .glitch-layers::before { left: 2px; text-shadow: -1px 0 #ff0000; clip: rect(24px, 550px, 90px, 0); animation: glitch-anim-1 3s infinite linear alternate-reverse; }
+        .glitch-layers::after { left: -2px; text-shadow: -1px 0 #0000ff; clip: rect(85px, 550px, 140px, 0); animation: glitch-anim-2 2.5s infinite linear alternate-reverse; }
+        
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #000; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #330000; border-radius: 2px; }
     </style>
 </head>
 <body>
     <div id="root"></div>
 
     <script type="text/babel" data-type="module">
-        // 3. Import dependencies from esm.sh (Reliable CDN for React)
-        import React, { useState, useEffect } from 'https://esm.sh/react@18.2.0?dev';
+        // 1. Import React & ReactDOM from esm.sh
+        import React, { useState, useEffect, useRef } from 'https://esm.sh/react@18.2.0?dev';
         import { createRoot } from 'https://esm.sh/react-dom@18.2.0/client?dev';
-        
-        // Import Lucide Icons directly
-        import { 
-            Terminal, 
-            Cpu, 
-            Activity, 
-            Eye, 
-            Database, 
-            Code, 
-            ChevronRight, 
-            Github, 
-            Linkedin, 
-            Mail, 
-            ExternalLink, 
-            Zap, 
-            Layers, 
-            Monitor 
-        } from 'https://esm.sh/lucide-react@0.292.0?dev';
 
-        const Portfolio = () => {
-            const [activeTab, setActiveTab] = useState('overview');
-            const [typedText, setTypedText] = useState('');
-            const fullText = "Initialize Computer Vision Protocols...";
+        // 2. Import Lucide Icons from esm.sh
+        // This solves the "lucide is not defined" error completely
+        import { 
+            Terminal, Cpu, Activity, Eye, Shield, Layers, Code, Zap, 
+            Globe, Database, Server, Hash, Wifi, Lock, AlertTriangle, 
+            X, Minimize, Maximize, Crosshair 
+        } from 'https://esm.sh/lucide-react@0.344.0?dev';
+
+        /* --- APPLICATION LOGIC STARTS HERE --- */
+
+        // --- Hooks & Utilities ---
+
+        const useScramble = (targetText, speed = 30, startDelay = 0) => {
+            const [displayText, setDisplayText] = useState('');
+            const [isComplete, setIsComplete] = useState(false);
+            const chars = '01'; 
 
             useEffect(() => {
-                let index = 0;
-                const timer = setInterval(() => {
-                    setTypedText(fullText.slice(0, index));
-                    index++;
-                    if (index > fullText.length) clearInterval(timer);
-                }, 50);
-                return () => clearInterval(timer);
+                let interval;
+                let timeout;
+                const start = () => {
+                    let iteration = 0;
+                    interval = setInterval(() => {
+                        setDisplayText(prev => 
+                            targetText.split("").map((letter, index) => {
+                                if (index < iteration) return targetText[index];
+                                return chars[Math.floor(Math.random() * chars.length)];
+                            }).join("")
+                        );
+                        if (iteration >= targetText.length) { 
+                            clearInterval(interval);
+                            setIsComplete(true);
+                        }
+                        iteration += 1 / 3; 
+                    }, speed);
+                };
+                timeout = setTimeout(start, startDelay);
+                return () => { clearInterval(interval); clearTimeout(timeout); };
+            }, [targetText, speed, startDelay]);
+
+            return { displayText, isComplete };
+        };
+
+        // --- Sub-Components ---
+
+        const CustomCursor = () => {
+            const [pos, setPos] = useState({ x: -100, y: -100 });
+            const [clicked, setClicked] = useState(false);
+
+            useEffect(() => {
+                const move = (e) => setPos({ x: e.clientX, y: e.clientY });
+                const down = () => setClicked(true);
+                const up = () => setClicked(false);
+                window.addEventListener('mousemove', move);
+                window.addEventListener('mousedown', down);
+                window.addEventListener('mouseup', up);
+                return () => {
+                    window.removeEventListener('mousemove', move);
+                    window.removeEventListener('mousedown', down);
+                    window.removeEventListener('mouseup', up);
+                };
             }, []);
 
-            const ExperienceCard = ({ role, type, date, location, company }) => (
-                <div className="border border-white/10 bg-white/5 p-6 rounded-lg hover:border-[#FF3333] transition-colors duration-300 group">
-                    <div className="flex items-start justify-between">
-                        <div>
-                            <h3 className="text-xl font-bold text-white group-hover:text-[#FF3333] transition-colors font-mono">
-                                {role}
-                            </h3>
-                            <p className="text-gray-400 font-mono text-sm mt-1">{company}</p>
-                        </div>
-                        <span className="text-xs text-[#FF3333] border border-[#FF3333]/30 px-2 py-1 rounded bg-[#FF3333]/10 font-mono">
-                            {type}
-                        </span>
-                    </div>
-                    <div className="mt-4 flex flex-col gap-2 text-sm text-gray-500 font-mono">
-                        <div className="flex items-center gap-2">
-                            <Activity size={14} />
-                            <span>{date}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <ExternalLink size={14} />
-                            <span>{location}</span>
-                        </div>
+            return (
+                <div className="fixed pointer-events-none z-[100] mix-blend-exclusion hidden md:block" style={{ left: pos.x, top: pos.y, transform: 'translate(-50%, -50%)' }}>
+                    <div className={`w-10 h-10 border border-red-500/80 rounded-full flex items-center justify-center transition-all duration-75 ${clicked ? 'scale-75 bg-red-900/50' : 'scale-100'}`}>
+                        <div className="w-0.5 h-full bg-red-500/50 absolute"></div>
+                        <div className="h-0.5 w-full bg-red-500/50 absolute"></div>
+                        <div className="absolute w-full h-full border border-red-500/30 rounded-full animate-ping"></div>
                     </div>
                 </div>
             );
+        };
+
+        const Radar = () => (
+            <div className="w-24 h-24 rounded-full border border-red-900/50 relative overflow-hidden bg-black/50 backdrop-blur-sm">
+                <div className="absolute inset-0 border border-red-900/30 rounded-full opacity-50 scale-50"></div>
+                <div className="absolute inset-0 border border-red-900/30 rounded-full opacity-50 scale-75"></div>
+                <div className="w-1/2 h-1/2 absolute top-0 right-0 bg-gradient-to-t from-transparent to-red-600/40 origin-bottom-left animate-[spin_2s_linear_infinite]" style={{borderTopLeftRadius: '100%'}}></div>
+                <div className="absolute top-2 left-6 w-1 h-1 bg-red-500 rounded-full animate-ping"></div>
+                <div className="absolute bottom-4 right-6 w-1 h-1 bg-red-500 rounded-full animate-ping" style={{animationDelay: '1s'}}></div>
+            </div>
+        );
+
+        const InteractiveTerminal = () => {
+            const [input, setInput] = useState('');
+            const [history, setHistory] = useState([
+                { type: 'sys', text: "CV-OS KERNEL v4.0.2 DETECTED" },
+                { type: 'sys', text: "Type 'help' for available commands." }
+            ]);
+            const endRef = useRef(null);
+
+            useEffect(() => {
+                endRef.current?.scrollIntoView({ behavior: "smooth" });
+            }, [history]);
+
+            const handleCommand = (e) => {
+                if (e.key === 'Enter') {
+                    const cmd = input.trim().toLowerCase();
+                    let response = null;
+
+                    switch(cmd) {
+                        case 'help': 
+                            response = "AVAILABLE COMMANDS: help, whoami, scan, skills, clear"; 
+                            break;
+                        case 'whoami': 
+                            response = "USER: VISITOR // CLEARANCE: LEVEL 1 // IP: TRACED"; 
+                            break;
+                        case 'scan': 
+                            response = "SCANNING NETWORK... [||||||||||] 100% // NO THREATS DETECTED."; 
+                            break;
+                        case 'skills':
+                            response = "LOADED MODULES: PYTORCH, OPENCV, REACT, NODE, AWS, DOCKER.";
+                            break;
+                        case 'clear': 
+                            setHistory([]); 
+                            setInput(''); 
+                            return;
+                        default: 
+                            response = `ERROR: COMMAND '${cmd}' NOT RECOGNIZED.`;
+                    }
+                    
+                    if (cmd !== 'clear') {
+                        setHistory(prev => [...prev, { type: 'user', text: `> ${input}` }, { type: 'res', text: response }]);
+                    }
+                    setInput('');
+                }
+            };
 
             return (
-                <div className="min-h-screen bg-[#050505] text-gray-300 selection:bg-[#FF3333] selection:text-white font-sans overflow-x-hidden">
-                    {/* Navbar */}
-                    <nav className="fixed top-0 w-full z-50 bg-[#050505]/80 backdrop-blur-md border-b border-white/10">
-                        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-                            <div className="flex items-center gap-2 text-white font-bold font-mono text-lg tracking-tighter">
-                                <Eye className="text-[#FF3333]" />
-                                <span>HASSAAN<span className="text-[#FF3333]">.CV</span></span>
-                            </div>
-                            <div className="hidden md:flex items-center gap-8 text-sm font-mono text-gray-400">
-                                <a href="#about" className="hover:text-white transition-colors">./About</a>
-                                <a href="#skills" className="hover:text-white transition-colors">./Skills</a>
-                                <a href="#experience" className="hover:text-white transition-colors">./Experience</a>
-                                <a href="https://www.linkedin.com/in/muhammad-hassaan-computer-vision-engineer" target="_blank" className="text-white hover:text-[#FF3333] transition-colors">
-                                    <Linkedin size={20} />
-                                </a>
-                            </div>
-                        </div>
-                    </nav>
-
-                    {/* Hero Section */}
-                    <section id="about" className="pt-32 pb-20 px-6 max-w-7xl mx-auto">
-                        <div className="flex flex-col items-center text-center">
-                            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-white/10 bg-white/5 text-xs font-mono text-[#FF3333] mb-8 animate-pulse">
-                                <span className="relative flex h-2 w-2">
-                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#FF3333] opacity-75"></span>
-                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-[#FF3333]"></span>
-                                </span>
-                                SYSTEM ONLINE: OPEN TO WORK
-                            </div>
-
-                            <h1 className="text-5xl md:text-7xl font-bold text-white tracking-tight mb-6">
-                                Computer Vision <br />
-                                <span className="text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-500">
-                                    Infrastructure Engineer
-                                </span>
-                            </h1>
-
-                            <p className="text-gray-400 max-w-2xl text-lg mb-10 leading-relaxed">
-                                Specialized in sports analytics, pose estimation, and motion tracking. 
-                                Building end-to-end CV pipelines from model development to real-time inference.
-                            </p>
-
-                            <div className="flex flex-col md:flex-row gap-4 w-full md:w-auto">
-                                <a 
-                                    href="mailto:mhassaan.workmail@gmail.com"
-                                    className="px-8 py-4 bg-[#FF3333] hover:bg-[#ff4444] text-white font-bold rounded hover:shadow-[0_0_20px_rgba(255,51,51,0.4)] transition-all duration-300 flex items-center justify-center gap-2"
-                                >
-                                    <Terminal size={18} />
-                                    Initialize Contact
-                                </a>
-                                <a 
-                                    href="#experience"
-                                    className="px-8 py-4 bg-white/5 border border-white/10 hover:border-white text-white font-bold rounded transition-all duration-300 flex items-center justify-center gap-2"
-                                >
-                                    View System Logs
-                                </a>
-                            </div>
-
-                            {/* Terminal Component */}
-                            <div className="mt-16 w-full max-w-3xl border border-white/10 rounded-lg bg-black overflow-hidden shadow-2xl">
-                                <div className="bg-[#1a1a1a] px-4 py-2 flex items-center gap-2 border-b border-white/5">
-                                    <div className="w-3 h-3 rounded-full bg-red-500/20"></div>
-                                    <div className="w-3 h-3 rounded-full bg-yellow-500/20"></div>
-                                    <div className="w-3 h-3 rounded-full bg-green-500/20"></div>
-                                    <span className="ml-2 text-xs text-gray-500 font-mono">hassaan@cv-engine:~</span>
-                                </div>
-                                <div className="p-6 text-left font-mono text-sm md:text-base">
-                                    <div className="text-green-400 mb-2">$ whoami</div>
-                                    <div className="text-gray-300 mb-4">
-                                        Name: Muhammad Hassaan<br/>
-                                        Role: Computer Vision Engineer @ ID Sports Ventures<br/>
-                                        Location: Islamabad, Pakistan<br/>
-                                        Focus: Sports Analytics & Biomechanics
-                                    </div>
-                                    <div className="text-green-400 mb-2">$ python run_inference.py --source input_video.mp4</div>
-                                    <div className="text-gray-500 italic animate-pulse">
-                                        {typedText}<span className="inline-block w-2 h-4 bg-[#FF3333] ml-1 align-middle"></span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </section>
-
-                    {/* Stats Section */}
-                    <div className="border-y border-white/5 bg-white/[0.02]">
-                        <div className="max-w-7xl mx-auto px-6 py-8 grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-                            <div>
-                                <div className="text-2xl font-bold text-white font-mono">100%</div>
-                                <div className="text-xs text-gray-500 uppercase tracking-widest mt-1">Python / PyTorch</div>
-                            </div>
-                            <div>
-                                <div className="text-2xl font-bold text-white font-mono">Real-Time</div>
-                                <div className="text-xs text-gray-500 uppercase tracking-widest mt-1">Inference Speed</div>
-                            </div>
-                            <div>
-                                <div className="text-2xl font-bold text-white font-mono">Zero</div>
-                                <div className="text-xs text-gray-500 uppercase tracking-widest mt-1">Single Point Failure</div>
-                            </div>
-                            <div>
-                                <div className="text-2xl font-bold text-white font-mono">Feb 2026</div>
-                                <div className="text-xs text-gray-500 uppercase tracking-widest mt-1">Current Availability</div>
-                            </div>
+                <div className="w-full border border-red-900/50 bg-black/90 font-mono text-xs md:text-sm p-2 shadow-[0_0_20px_rgba(220,38,38,0.2)]">
+                    <div className="flex items-center justify-between bg-red-950/30 p-1 mb-2 border-b border-red-900/30">
+                        <span className="text-red-500 font-bold flex items-center gap-2"><Terminal size={12}/> ROOT_TERMINAL</span>
+                        <div className="flex gap-1">
+                            <Minimize size={10} className="text-red-500"/>
+                            <Maximize size={10} className="text-red-500"/>
+                            <X size={10} className="text-red-500"/>
                         </div>
                     </div>
-
-                    {/* Skills Grid */}
-                    <section id="skills" className="py-24 px-6 max-w-7xl mx-auto">
-                        <div className="text-center mb-16">
-                            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Core Architecture</h2>
-                            <p className="text-gray-400">High-availability skills for AI agent survival.</p>
+                    <div className="h-40 overflow-y-auto space-y-1 p-2 custom-scrollbar">
+                        {history.map((line, i) => (
+                            <div key={i} className={`${line.type === 'user' ? 'text-white' : line.type === 'sys' ? 'text-red-400' : 'text-red-600'}`}>
+                                {line.text}
+                            </div>
+                        ))}
+                        <div className="flex items-center text-red-500">
+                            <span className="mr-2">{'>'}</span>
+                            <input 
+                                type="text" 
+                                value={input}
+                                onChange={(e) => setInput(e.target.value)}
+                                onKeyDown={handleCommand}
+                                className="bg-transparent border-none outline-none flex-1 text-white focus:ring-0"
+                                autoFocus
+                                placeholder="..."
+                            />
                         </div>
+                        <div ref={endRef}></div>
+                    </div>
+                </div>
+            );
+        };
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {[
-                                { 
-                                    icon: <Eye className="text-[#FF3333]" />, 
-                                    title: "Computer Vision", 
-                                    desc: "Deep Learning based object detection and segmentation pipelines." 
-                                },
-                                { 
-                                    icon: <Activity className="text-[#FF3333]" />, 
-                                    title: "Pose Estimation", 
-                                    desc: "Advanced skeletal tracking for biomechanical analysis in sports." 
-                                },
-                                { 
-                                    icon: <Cpu className="text-[#FF3333]" />, 
-                                    title: "Motion Tracking", 
-                                    desc: "Real-time trajectory prediction and athlete performance metrics." 
-                                },
-                                { 
-                                    icon: <Code className="text-[#FF3333]" />, 
-                                    title: "PyTorch & OpenCV", 
-                                    desc: "Native development in industry standard frameworks." 
-                                },
-                                { 
-                                    icon: <Layers className="text-[#FF3333]" />, 
-                                    title: "Pipeline Automation", 
-                                    desc: "End-to-end automated scoring systems and data processing." 
-                                },
-                                { 
-                                    icon: <Monitor className="text-[#FF3333]" />, 
-                                    title: "Sports Analytics", 
-                                    desc: "Converting raw pixel data into actionable coaching insights." 
-                                }
-                            ].map((skill, idx) => (
-                                <div key={idx} className="border border-white/10 bg-black p-8 rounded-lg hover:bg-white/[0.02] transition-colors">
-                                    <div className="mb-6 p-3 bg-white/5 w-fit rounded-lg border border-white/5">
-                                        {skill.icon}
+        const SecurityGate = ({ onUnlock }) => {
+            const [progress, setProgress] = useState(0);
+            const [hacking, setHacking] = useState(false);
+
+            const handleOverride = () => {
+                setHacking(true);
+                let p = 0;
+                const interval = setInterval(() => {
+                    p += Math.random() * 5;
+                    if (p >= 100) {
+                        p = 100;
+                        clearInterval(interval);
+                        setTimeout(onUnlock, 500);
+                    }
+                    setProgress(p);
+                }, 50);
+            };
+
+            return (
+                <div className="fixed inset-0 z-[60] bg-black/95 flex flex-col items-center justify-center p-4">
+                    <div className="max-w-md w-full border border-red-600 p-8 relative bg-[#050000] shadow-[0_0_50px_rgba(220,38,38,0.3)]">
+                        <div className="absolute top-0 left-0 w-full h-1 bg-red-600"></div>
+                        <div className="absolute bottom-0 left-0 w-full h-1 bg-red-600"></div>
+                        
+                        <AlertTriangle className="w-16 h-16 text-red-600 mx-auto mb-6 animate-bounce" />
+                        <h1 className="text-3xl font-black text-center text-white mb-2 tracking-tighter">ACCESS RESTRICTED</h1>
+                        <p className="text-red-500 font-mono text-center text-sm mb-8">SECURE CONNECTION REQUIRED. UNAUTHORIZED PERSONNEL WILL BE TRACED.</p>
+                        
+                        {!hacking ? (
+                            <button 
+                                onClick={handleOverride}
+                                className="w-full bg-red-700 hover:bg-red-600 text-black font-bold py-4 uppercase tracking-[0.2em] transition-all hover:shadow-[0_0_20px_rgba(220,38,38,0.8)]"
+                                style={{clipPath: 'polygon(10% 0, 100% 0, 100% 70%, 90% 100%, 0 100%, 0 30%)'}}
+                            >
+                                INITIATE OVERRIDE
+                            </button>
+                        ) : (
+                            <div className="space-y-2">
+                                <div className="flex justify-between text-xs text-red-500 font-mono">
+                                    <span>INJECTING_PAYLOAD...</span>
+                                    <span>{Math.floor(progress)}%</span>
+                                </div>
+                                <div className="w-full h-4 bg-red-900/30 border border-red-900/50">
+                                    <div className="h-full bg-red-600" style={{width: `${progress}%`}}></div>
+                                </div>
+                                <div className="text-[10px] text-red-800 font-mono h-4 overflow-hidden">
+                                    {progress > 30 && "BYPASSING_FIREWALL... OK"}
+                                    {progress > 60 && " // DECRYPTING_KEYS... OK"}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                    {/* Background Grid */}
+                    <div className="absolute inset-0 pointer-events-none opacity-20" style={{backgroundImage: 'radial-gradient(circle, #330000 1px, transparent 1px)', backgroundSize: '20px 20px'}}></div>
+                </div>
+            );
+        };
+
+        const WolfLogo = ({ className }) => (
+            <div className={`relative ${className}`}>
+                <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-[0_0_15px_rgba(220,38,38,0.5)]" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M20 20 L50 80 L80 20 L50 35 L20 20Z" fill="#0f0000" stroke="#ef4444" strokeWidth="2" className="animate-[pulse_3s_ease-in-out_infinite]" />
+                    <path d="M50 80 L50 100" stroke="#ef4444" strokeWidth="2" />
+                    <path d="M30 30 L40 50 L50 35 L60 50 L70 30" fill="none" stroke="#ef4444" strokeWidth="1" />
+                    <circle cx="35" cy="40" r="2" fill="#ef4444" className="animate-ping" />
+                    <circle cx="65" cy="40" r="2" fill="#ef4444" className="animate-ping" style={{animationDelay: '0.5s'}} />
+                </svg>
+                <div className="absolute inset-0 bg-red-600/10 animate-pulse mix-blend-overlay"></div>
+            </div>
+        );
+
+        const MatrixRain = () => {
+            const canvasRef = useRef(null);
+            useEffect(() => {
+                const canvas = canvasRef.current;
+                const ctx = canvas.getContext('2d');
+                let width = window.innerWidth;
+                let height = window.innerHeight;
+                canvas.width = width;
+                canvas.height = height;
+                const chars = '01';
+                const fontSize = 14;
+                const columns = width / fontSize;
+                const drops = [];
+                for (let x = 0; x < columns; x++) drops[x] = 1;
+                const draw = () => {
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+                    ctx.fillRect(0, 0, width, height);
+                    ctx.font = fontSize + 'px monospace';
+                    for (let i = 0; i < drops.length; i++) {
+                        const redIntensity = Math.random() > 0.98 ? 255 : 80; 
+                        ctx.fillStyle = `rgb(${redIntensity}, 0, 0)`;
+                        ctx.fillText(chars.charAt(Math.floor(Math.random() * chars.length)), i * fontSize, drops[i] * fontSize);
+                        if (drops[i] * fontSize > height && Math.random() > 0.975) drops[i] = 0;
+                        drops[i]++;
+                    }
+                };
+                const interval = setInterval(draw, 33);
+                const handleResize = () => { width = window.innerWidth; height = window.innerHeight; canvas.width = width; canvas.height = height; };
+                window.addEventListener('resize', handleResize);
+                return () => { clearInterval(interval); window.removeEventListener('resize', handleResize); };
+            }, []);
+            return <canvas ref={canvasRef} className="fixed top-0 left-0 w-full h-full z-0 opacity-[0.15] pointer-events-none" />;
+        };
+
+        const ScrambleText = ({ text, className = "" }) => {
+            const [display, setDisplay] = useState(text);
+            const chars = "!@#$%^&*()_+-=[]{}|;':,./<>?";
+            const scramble = () => {
+                let iteration = 0;
+                const interval = setInterval(() => {
+                    setDisplay(text.split("").map((letter, index) => {
+                            if (index < iteration) return text[index];
+                            return chars[Math.floor(Math.random() * chars.length)];
+                        }).join(""));
+                    if (iteration >= text.length) clearInterval(interval);
+                    iteration += 1 / 2;
+                }, 30);
+            };
+            return <span onMouseEnter={scramble} className={`cursor-none ${className}`}>{display}</span>;
+        };
+
+        const ScrollSection = ({ children, className = "", delay = 0 }) => {
+            const [isVisible, setIsVisible] = useState(false);
+            const domRef = useRef();
+            useEffect(() => {
+                const observer = new IntersectionObserver(entries => {
+                    entries.forEach(entry => { if(entry.isIntersecting) setIsVisible(true); });
+                }, { threshold: 0.1 });
+                const currentRef = domRef.current;
+                if (currentRef) observer.observe(currentRef);
+                return () => { if(currentRef) observer.unobserve(currentRef); } 
+            }, []);
+            return (
+                <div ref={domRef} style={{ transitionDelay: `${delay}ms` }} className={`transition-all duration-700 transform ${isVisible ? 'opacity-100 translate-y-0 blur-0' : 'opacity-0 translate-y-10 blur-sm'} ${className}`}>
+                    {children}
+                </div>
+            );
+        };
+
+        // --- Main Application ---
+
+        const App = () => {
+            const [bootSequence, setBootSequence] = useState(true);
+            const [securityLocked, setSecurityLocked] = useState(false);
+            const [bootLog, setBootLog] = useState([]);
+
+            useEffect(() => {
+                const logs = ["INITIALIZING KERNEL...", "LOADING NEURAL MODULES...", "BYPASSING FIREWALL...", "DECRYPTING STORAGE...", "MOUNTING ENV...", "ACCESS GRANTED."];
+                let delay = 0;
+                logs.forEach((log) => {
+                    setTimeout(() => setBootLog(prev => [...prev, log]), delay);
+                    delay += Math.random() * 500 + 200;
+                });
+                const timer = setTimeout(() => {
+                        setBootSequence(false);
+                        setSecurityLocked(true);
+                        setTimeout(() => {
+                            window.scrollTo(0, 0);
+                            document.documentElement.scrollTop = 0;
+                            document.body.scrollTop = 0;
+                        }, 0);
+                }, 3500);
+                return () => clearTimeout(timer);
+            }, []);
+
+            const skills = [
+                { title: "Computer Vision", icon: <Eye />, desc: "Deep Learning object detection/segmentation." },
+                { title: "Pose Estimation", icon: <Activity />, desc: "Advanced skeletal tracking & biomechanics." },
+                { title: "Motion Tracking", icon: <Zap />, desc: "Real-time trajectory prediction." },
+                { title: "Infrastructure", icon: <Server />, desc: "End-to-end CV pipelines & deployment." },
+                { title: "PyTorch & OpenCV", icon: <Code />, desc: "Native development in industry standards." },
+                { title: "Sports Analytics", icon: <Layers />, desc: "Pixel data to actionable coaching insights." },
+            ];
+
+            const experience = [
+                { role: "Computer Vision Engineer", company: "ID Sports Ventures", date: "Jan 2026 - Present", type: "Part-time", loc: "Remote" },
+                { role: "Computer Vision Engineer", company: "ID Sports Ventures", date: "Sep 2025 - Dec 2025", type: "Full-time", loc: "Berlin (Remote)" },
+                { role: "CV Intern", company: "ID Sports Ventures", date: "Jul 2025 - Aug 2025", type: "Internship", loc: "Berlin (Remote)" },
+            ];
+
+            const { displayText: headerName } = useScramble("MUHAMMAD HASSAAN", 40, 3800);
+            const { displayText: headerRole } = useScramble("COMPUTER VISION ENGINEER", 20, 5000);
+
+            if (bootSequence) {
+                return (
+                    <div className="bg-black h-screen w-screen flex flex-col items-center justify-center text-red-600 font-mono overflow-hidden relative p-8">
+                        <WolfLogo className="w-24 h-24 mb-8 animate-bounce" />
+                        <div className="w-full max-w-md border border-red-900/50 p-4 bg-black/80 shadow-[0_0_20px_rgba(220,38,38,0.1)]">
+                            <div className="h-64 overflow-hidden flex flex-col justify-end font-mono text-xs">
+                                {bootLog.map((log, i) => <div key={i} className="mb-1 text-red-500"><span className="text-red-800 mr-2">[{new Date().toLocaleTimeString()}]</span>{log}</div>)}
+                                <div className="animate-pulse">_</div>
+                            </div>
+                            <div className="w-full bg-red-900/20 h-1 mt-4"><div className="h-full bg-red-600 animate-[loading_3.5s_ease-in-out_forwards]" style={{width: '0%'}}></div></div>
+                        </div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="min-h-screen bg-[#020000] text-gray-300 font-mono selection:bg-red-600 selection:text-black relative overflow-x-hidden cursor-none">
+                    {securityLocked && <SecurityGate onUnlock={() => setSecurityLocked(false)} />}
+                    
+                    <CustomCursor />
+                    <MatrixRain />
+                    
+                    {/* Background FX */}
+                    <div className="fixed inset-0 opacity-[0.04] pointer-events-none z-50 mix-blend-screen animate-[noise_0.2s_infinite]" style={{backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`}}></div>
+                    <div className="fixed inset-0 pointer-events-none z-40 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_4px,6px_100%]"></div>
+                    <div className="fixed inset-0 z-0 opacity-20 pointer-events-none" style={{backgroundImage: 'linear-gradient(rgba(255, 0, 0, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 0, 0, 0.1) 1px, transparent 1px)', backgroundSize: '40px 40px', transform: 'perspective(500px) rotateX(20deg) scale(1.5)'}}></div>
+
+                    {/* Main Content */}
+                    <main className={`relative z-10 container mx-auto px-4 py-8 max-w-6xl transition-all duration-1000 ${securityLocked ? 'blur-md scale-95' : 'blur-0 scale-100'}`}>
+                        
+                        {/* HEADER */}
+                        <header className="border-b border-red-900/40 pb-12 mb-16 relative">
+                            <div className="absolute top-0 right-0 hidden md:flex flex-col gap-4">
+                                <div className="flex items-center gap-2 text-red-500 text-xs animate-pulse border border-red-900/50 px-3 py-1 bg-black/50">
+                                    <Lock size={12} /> SECURE_CONN_ESTABLISHED
+                                </div>
+                                <Radar />
+                            </div>
+                            
+                            <div className="flex flex-col md:flex-row items-center md:items-start gap-10 mt-8">
+                                <div className="relative group">
+                                    <WolfLogo className="w-32 h-32 md:w-48 md:h-48 transition-transform duration-300 group-hover:scale-105" />
+                                    <div className="absolute -inset-4 border border-red-600/20 rounded-full animate-[spin_10s_linear_infinite] border-dashed pointer-events-none"></div>
+                                </div>
+
+                                <div className="flex-1 space-y-6 text-center md:text-left pt-4">
+                                    <div className="inline-flex items-center gap-2 bg-red-950/30 px-3 py-1 text-xs text-red-400 border border-red-900/30 font-bold tracking-widest">
+                                        <Terminal size={12} /> root@cv-engine:~
                                     </div>
-                                    <h3 className="text-lg font-bold text-white mb-2 font-mono">{skill.title}</h3>
-                                    <p className="text-sm text-gray-400 leading-relaxed">
-                                        {skill.desc}
-                                    </p>
+                                    <div>
+                                        <h1 className="text-4xl md:text-7xl font-black text-white tracking-tighter uppercase mb-2 relative inline-block glitch-layers" data-text={headerName}>{headerName}</h1>
+                                        <h2 className="text-xl md:text-2xl text-red-600 font-bold tracking-[0.2em] flex items-center justify-center md:justify-start gap-3">
+                                            <span className="hidden md:inline-block w-8 h-[2px] bg-red-800"></span> {headerRole}
+                                        </h2>
+                                    </div>
+                                    <div className="max-w-2xl text-sm md:text-lg text-gray-400 leading-relaxed border-l-4 border-red-800 pl-6 py-2 bg-gradient-to-r from-red-900/10 to-transparent relative">
+                                        Specialized in <span className="text-white font-bold drop-shadow-[0_0_5px_rgba(255,255,255,0.5)]">sports analytics</span>, <span className="text-white font-bold drop-shadow-[0_0_5px_rgba(255,255,255,0.5)]">pose estimation</span>, and motion tracking.
+                                    </div>
+                                    
+                                    {/* TERMINAL WIDGET */}
+                                    <div className="w-full max-w-lg mt-8 text-left">
+                                        <InteractiveTerminal />
+                                    </div>
+                                </div>
+                            </div>
+                        </header>
+
+                        {/* LIVE STATS DASHBOARD */}
+                        <ScrollSection className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-20">
+                            {[{icon:Code, l:"Python", v:"100%"}, {icon:Zap, l:"Speed", v:"REAL-TIME"}, {icon:Shield, l:"Failures", v:"ZERO"}, {icon:Wifi, l:"Online", v:"FEB 2026"}].map((s,i) => (
+                                <div key={i} className="bg-black/80 border border-red-900/40 p-6 backdrop-blur-sm group hover:border-red-500 transition-colors relative overflow-hidden">
+                                    <div className="absolute top-0 right-0 p-2 text-red-900/20 group-hover:text-red-900/50"><s.icon size={40} /></div>
+                                    <div className="text-xs text-red-500 uppercase tracking-widest mb-2 font-bold">{s.l}</div>
+                                    <div className="text-3xl font-black text-white group-hover:text-red-500">{s.v}</div>
+                                    <div className="w-full h-1 bg-red-900/30 mt-4"><div className="h-full bg-red-600 w-full animate-pulse"></div></div>
                                 </div>
                             ))}
-                        </div>
-                    </section>
+                        </ScrollSection>
 
-                    {/* Process Section */}
-                    <section className="py-24 bg-white/[0.02] border-y border-white/5">
-                        <div className="max-w-7xl mx-auto px-6">
-                            <div className="text-center mb-16">
-                                <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">The Workflow</h2>
-                                <p className="text-gray-400">If pixels have meaning, I extract it.</p>
+                        {/* CORE ARCHITECTURE */}
+                        <ScrollSection className="mb-24">
+                            <div className="flex items-end gap-4 mb-10 border-b border-red-900/30 pb-4">
+                                <Cpu className="text-red-600 w-8 h-8 animate-pulse" />
+                                <h3 className="text-3xl font-black text-white uppercase tracking-tighter">Core Architecture</h3>
                             </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 relative">
-                                {[
-                                    { id: 1, title: "Data Ingestion", desc: "Raw video feed processing" },
-                                    { id: 2, title: "Pre-processing", desc: "Noise reduction & calibration" },
-                                    { id: 3, title: "Model Inference", desc: "Pose/Object detection" },
-                                    { id: 4, title: "Metric Extraction", desc: "Velocity, angles, force" },
-                                    { id: 5, title: "Actionable Insight", desc: "Performance Report" },
-                                ].map((step, idx) => (
-                                    <div key={step.id} className="relative group">
-                                        <div className="border border-white/10 bg-black p-6 rounded-lg hover:border-[#FF3333] transition-colors h-full flex flex-col items-center text-center z-10 relative">
-                                            <div className="w-8 h-8 rounded-full bg-[#FF3333] text-white flex items-center justify-center font-bold text-sm mb-4">
-                                                {step.id}
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {skills.map((skill, index) => (
+                                    <div key={index} className="group relative bg-[#0a0a0a]/90 p-8 border border-red-900/20 hover:border-red-500 transition-all hover:-translate-y-1 overflow-hidden backdrop-blur-sm cursor-none">
+                                        <div className="absolute inset-0 bg-red-900/10 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out"></div>
+                                        <div className="relative z-10">
+                                            <div className="flex justify-between items-start mb-6">
+                                                <div className="text-red-600 group-hover:scale-110 transition-transform duration-300 p-2 bg-red-950/30 rounded border border-red-900/30">{skill.icon}</div>
+                                                <Hash size={24} className="text-red-900/30 group-hover:text-red-600/50 transition-colors" />
                                             </div>
-                                            <h4 className="text-white font-bold mb-2 font-mono">{step.title}</h4>
-                                            <p className="text-xs text-gray-500">{step.desc}</p>
+                                            <h4 className="text-xl font-bold text-white mb-3 group-hover:text-red-400 transition-colors"><ScrambleText text={skill.title} /></h4>
+                                            <p className="text-sm text-gray-500 group-hover:text-gray-300 transition-colors leading-relaxed">{skill.desc}</p>
                                         </div>
-                                        {idx !== 4 && (
-                                            <div className="hidden md:block absolute top-1/2 -right-1/2 w-full h-[1px] bg-white/10 -z-0"></div>
-                                        )}
+                                        <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-red-600 opacity-50 group-hover:opacity-100 transition-all"></div>
+                                        <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-red-600 opacity-50 group-hover:opacity-100 transition-all"></div>
                                     </div>
                                 ))}
                             </div>
+                        </ScrollSection>
 
-                            <div className="mt-12 flex justify-center space-x-8 text-xs font-mono text-gray-500 uppercase tracking-widest hidden md:flex">
-                                <span>Input</span>
-                                <span>-</span>
-                                <span>Compute</span>
-                                <span>-</span>
-                                <span>Analyze</span>
-                                <span>-</span>
-                                <span>Visualize</span>
-                                <span>-</span>
-                                <span>Optimize</span>
+                        {/* SYSTEM LOGS */}
+                        <ScrollSection className="mb-24">
+                            <div className="flex items-end gap-4 mb-10 border-b border-red-900/30 pb-4">
+                                <Shield className="text-red-600 w-8 h-8" />
+                                <h3 className="text-3xl font-black text-white uppercase tracking-tighter">System Logs</h3>
                             </div>
-                        </div>
-                    </section>
-
-                    {/* Experience Section */}
-                    <section id="experience" className="py-24 px-6 max-w-4xl mx-auto">
-                        <div className="text-center mb-16">
-                            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">System History</h2>
-                            <p className="text-gray-400">Read the logs. Track the progress.</p>
-                        </div>
-
-                        <div className="space-y-6">
-                            <ExperienceCard 
-                                role="Computer Vision Engineer"
-                                company="ID Sports Ventures"
-                                type="Part-time"
-                                date="Jan 2026 - Present"
-                                location="Remote"
-                            />
-                            <ExperienceCard 
-                                role="Computer Vision Engineer"
-                                company="ID Sports Ventures"
-                                type="Full-time"
-                                date="Sep 2025 - Dec 2025"
-                                location="Berlin, Germany (Remote)"
-                            />
-                            <ExperienceCard 
-                                role="Computer Vision Engineer"
-                                company="ID Sports Ventures"
-                                type="Internship"
-                                date="Jul 2025 - Aug 2025"
-                                location="Berlin, Germany (Remote)"
-                            />
-                        </div>
-
-                        <div className="mt-12 p-6 border border-white/10 rounded-lg bg-[#0a0a0a]">
-                            <div className="flex items-center gap-2 mb-4 text-gray-400 text-sm font-mono uppercase tracking-wider">
-                                <Zap size={14} className="text-[#FF3333]" />
-                                Latest System Broadcast
+                            <div className="space-y-8">
+                                {experience.map((job, i) => (
+                                    <div key={i} className="group flex flex-col md:flex-row gap-6 border-l-2 border-red-900/30 pl-8 relative transition-all hover:border-red-600 hover:pl-10 duration-300">
+                                        <div className="absolute -left-[9px] top-0 w-4 h-4 bg-black border-2 border-red-800 rounded-full group-hover:bg-red-600 group-hover:shadow-[0_0_10px_#ef4444] transition-all"></div>
+                                        <div className="md:w-1/4 font-mono">
+                                            <div className="text-red-500 font-bold text-sm tracking-wider flex items-center gap-2">{job.date}</div>
+                                            <div className="text-xs text-gray-600 mt-1 uppercase">{job.loc}</div>
+                                        </div>
+                                        <div className="flex-1 bg-white/5 p-4 rounded border border-transparent group-hover:border-red-900/30 group-hover:bg-red-900/5 transition-colors cursor-none">
+                                            <h4 className="text-xl font-bold text-white group-hover:text-red-400 transition-colors">{job.role}</h4>
+                                            <div className="text-gray-400 font-semibold">{job.company}</div>
+                                            <div className="mt-3 inline-flex items-center gap-2 px-3 py-1 bg-black border border-red-900/40 text-xs text-red-500 uppercase tracking-widest"><div className="w-1 h-1 bg-red-500 rounded-full"></div>{job.type}</div>
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
-                            <p className="text-gray-300 italic leading-relaxed">
-                                "Excellence isn’t an accident—it’s a habit. We often focus on the 'big breaks' or the 'lucky moments,' but the real magic happens in the mundane. It’s the daily effort... Average is doing it when you’re inspired. Excellence is doing it anyway."
-                            </p>
-                        </div>
-                    </section>
+                        </ScrollSection>
 
-                    {/* Footer */}
-                    <footer className="border-t border-white/10 bg-black py-12 text-center">
-                        <div className="flex justify-center gap-6 mb-8">
-                            <a href="https://github.com/muhammad-hassaan-0" target="_blank" className="p-3 bg-white/5 rounded-full hover:bg-[#FF3333] hover:text-white transition-colors text-gray-400">
-                                <Github size={20} />
-                            </a>
-                            <a href="https://www.linkedin.com/in/muhammad-hassaan-computer-vision-engineer" className="p-3 bg-white/5 rounded-full hover:bg-[#FF3333] hover:text-white transition-colors text-gray-400">
-                                <Linkedin size={20} />
-                            </a>
-                            <a href="mailto:mhassaan.workmail@gmail.com" className="p-3 bg-white/5 rounded-full hover:bg-[#FF3333] hover:text-white transition-colors text-gray-400">
-                                <Mail size={20} />
-                            </a>
-                        </div>
-                        <p className="text-gray-600 text-sm font-mono">
-                            © 2026 Muhammad Hassaan. All Systems Operational.
-                        </p>
-                    </footer>
+                        {/* FOOTER */}
+                        <ScrollSection className="mt-32 pb-20">
+                            <div className="bg-[#0a0a0a] border border-red-800 p-8 relative overflow-hidden group">
+                                <div className="absolute inset-0 bg-[linear-gradient(transparent_50%,rgba(0,0,0,0.5)_50%)] bg-[length:100%_4px] pointer-events-none opacity-50"></div>
+                                <div className="absolute top-0 right-0 bg-red-800 text-black text-xs font-bold px-3 py-1 flex items-center gap-2"><AlertTriangle size={12} /> BROADCAST_MSG_v1.0</div>
+                                <p className="font-mono text-red-200/80 italic text-sm md:text-xl leading-relaxed relative z-10">
+                                    "Excellence isn’t an accident—it’s a habit. We often focus on the 'big breaks' or the 'lucky moments,' but the real magic happens in the mundane. <span className="text-white bg-red-700 px-1 font-bold not-italic group-hover:bg-red-600 transition-colors">Excellence is doing it anyway.</span>"
+                                </p>
+                            </div>
+                        </ScrollSection>
+                    </main>
+
+                    <div className="fixed bottom-0 left-0 w-full bg-black border-t border-red-900/50 p-1 z-50 flex items-center gap-2 text-xs font-mono text-red-500 opacity-90">
+                        <span className="text-red-700 ml-2">{'>'}</span><span className="animate-pulse">_</span>
+                        <span className="text-red-900/50 ml-auto mr-2 hidden md:inline">ENCRYPTED CONNECTION // PORT 8080</span>
+                    </div>
                 </div>
             );
         };
 
         const root = createRoot(document.getElementById('root'));
-        root.render(<Portfolio />);
+        root.render(<App />);
     </script>
 </body>
 </html>
